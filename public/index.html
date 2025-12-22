@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment 2: API Integrator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>User & Country Data Explorer</h1>
+            <button id="fetchBtn" class="main-btn">Get Random User</button>
+        </header>
+
+        <main id="resultArea" class="hidden">
+            <section class="card user-card">
+                <img id="userImg" src="" alt="Profile" class="profile-pic">
+                <div class="info">
+                    <h2 id="userName"></h2>
+                    <p><strong>Gender:</strong> <span id="userGender"></span></p>
+                    <p><strong>Age:</strong> <span id="userAge"></span></p>
+                    <p><strong>DOB:</strong> <span id="userDOB"></span></p>
+                    <p><strong>Location:</strong> <span id="userLocation"></span></p>
+                    <p><strong>Address:</strong> <span id="userAddress"></span></p>
+                </div>
+            </section>
+
+            <section class="card country-card">
+                <h3>Country Information</h3>
+                <div class="country-details">
+                    <p><strong>Country:</strong> <span id="countryName"></span></p>
+                    <p><strong>Capital:</strong> <span id="countryCapital"></span></p>
+                    <p><strong>Language:</strong> <span id="countryLang"></span></p>
+                    <p><strong>Currency:</strong> <span id="countryCurrency"></span></p>
+                </div>
+                <div class="exchange-rate">
+                    <h4>Exchange Rate</h4>
+                    <p id="rateText"></p>
+                </div>
+            </section>
+
+            <section class="news-section">
+                <h3>Latest News</h3>
+                <div id="newsContainer" class="news-grid">
+                    </div>
+            </section>
+        </main>
+        
+        <p id="loading" style="display:none;">Loading data...</p>
+    </div>
+
+    <script src="client.js"></script>
+</body>
+</html>
