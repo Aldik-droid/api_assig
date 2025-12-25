@@ -1,118 +1,62 @@
 import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
 
 dotenv.config();
-
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, "public")));
-app.use(express.json());
+app.use(express.static("public"));
 
 app.get("/api/get-full-user-data", async (req, res) => {
   try {
-    const userResponse = await axios.get("https://randomuser.me/api/");
-    const userData = userResponse.data.results[0];
+    const userRes = await axios.get("https://randomuser.me/api/");
+    const userData = userRes.data.results[0];
 
     const user = {
       firstName: userData.name.first,
       lastName: userData.name.last,
       gender: userData.gender,
-      profilePicture: userData.picture.large,
-      age: userData.dob.age,
+      age: userData.age,
       dateOfBirth: userData.dob.date.split("T")[0],
-      city: userData.location.city,
       country: userData.location.country,
-      address: `${userData.location.street.number} ${userData.location.street.name}`,
+      address: `${userData.location.city}, ${userData.location.country}`,
+      profilePicture: userData.picture.large
     };
 
     let countryInfo = {};
     try {
-      const countryResponse = await axios.get(
-        `http://api.countrylayer.com/v2/name/${user.country}`,
-        {
-          params: {
-            access_key: process.env.COUNTRY_API_KEY,
-            fullText: true,
-          },
-        }
-      );
-      
-      const cData = countryResponse.data[0];
+      const cRes = await axios.get(`https://restcountries.com/v3.1/name/${user.country}?fullText=true`);
+      const cData = cRes.data[0];
+
       countryInfo = {
-        name: cData.name,
-        capital: cData.capital,
-        language: cData.languages[0].name,
-        currencyCode: cData.currencies[0].code,
-        flag: cData.flag || "https://via.placeholder.com/150",
+        name: cData.name.common,
+        capital: cData.capital ? cData.capital[0] : "N/A",
+        currencyCode: Object.keys(cData.currencies)[0],
+        flag: cData.flags.svg
       };
-    } catch (err) {
-      console.error("Country API Error:", err.message);
-      countryInfo = { 
-        name: user.country, 
-        currencyCode: "USD", 
-        note: "Country data unavailable (API limit or error)" 
-      };
+    } catch (e) {
+      console.log("Country API error, using defaults");
+      countryInfo = { name: user.country, capital: "N/A", currencyCode: "USD" };
     }
 
-    let exchangeRate = {};
-    if (countryInfo.currencyCode) {
-      try {
-        const rateResponse = await axios.get(
-          `https://v6.exchangerate-api.com/v6/${process.env.EXCHANGE_API_KEY}/latest/${countryInfo.currencyCode}`
-        );
-        
-        const rates = rateResponse.data.conversion_rates;
-        exchangeRate = {
-          localCurrency: countryInfo.currencyCode,
-          usd: rates.USD,
-          kzt: rates.KZT,
-          text: `1 ${countryInfo.currencyCode} = ${rates.USD} USD, 1 ${countryInfo.currencyCode} = ${rates.KZT} KZT` // 
-        };
-      } catch (err) {
-        console.error("Exchange API Error:", err.message);
-      }
-    }
+    let exchangeRate = { text: "No rate data" };
+    try {
+      const exRes = await axios.get(`https://v6.exchangerate-api.com/v6/${process.env.EXCHANGE_API_KEY}/latest/${countryInfo.currencyCode}`);
+      const rates = exRes.data.conversion_rates;
+      exchangeRate.text = `1 ${countryInfo.currencyCode} = ${rates.USD} USD / ${rates.KZT} KZT`;
+    } catch (e) { console.log("Exchange API error"); }
 
     let news = [];
     try {
-      const newsResponse = await axios.get("https://newsapi.org/v2/everything", {
-        params: {
-          q: user.country,
-          language: "en", 
-          pageSize: 5,
-          apiKey: process.env.NEWS_API_KEY,
-        },
-      });
+      const nRes = await axios.get(`https://newsapi.org/v2/everything?q=${user.country}&pageSize=5&apiKey=${process.env.NEWS_API_KEY}`);
+      news = nRes.data.articles.map(a => ({ title: a.title, url: a.url }));
+    } catch (e) { console.log("News API error"); }
 
-      news = newsResponse.data.articles.map((article) => ({
-        title: article.title,
-        image: article.urlToImage,
-        description: article.description,
-        url: article.url,
-      }));
-    } catch (err) {
-      console.error("News API Error:", err.message);
-    }
-
-    res.json({
-      user,
-      countryInfo,
-      exchangeRate,
-      news,
-    });
+    res.json({ user, countryInfo, exchangeRate, news });
 
   } catch (error) {
-    console.error("Global Error:", error);
-    res.status(500).json({ error: "Failed to fetch data" });
+    console.error("Main Error:", error.message);
+    res.status(500).json({ error: "Something went wrong" });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`); // 
-});
+app.listen(3000, () => console.log("Server started on http://localhost:3000"));
